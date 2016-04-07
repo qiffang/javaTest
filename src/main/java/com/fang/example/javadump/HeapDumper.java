@@ -9,7 +9,7 @@ import java.lang.management.ManagementFactory;
 /**
  * Created by fang on 3/15/16.
  *
- * This class dump heap from application, and analyze those off line using jhat
+ * This class dump heap from application, and analyze those off line using mat
  */
 public class HeapDumper {
 
