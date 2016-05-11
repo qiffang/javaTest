@@ -40,18 +40,18 @@ public class MySearchEngine {
 
 
 //    public void createIndex(IndexWriter writer, File file) throws IOException {
-//        // file可以读取
+//
 //        if (file.canRead()) {
-//            if (file.isDirectory()) { // 如果file是一个目录(该目录下面可能有文件、目录文件、空文件三种情况)
-//                String[] files = file.list(); // 获取file目录下的所有文件(包括目录文件)File对象，放到数组files里
+//            if (file.isDirectory()) {
+//                String[] files = file.list();
 //                // 如果files!=null
 //                if (files != null) {
-//                    for (int i = 0; i < files.length; i++) { // 对files数组里面的File对象递归索引，通过广度遍历
+//                    for (int i = 0; i < files.length; i++) {
 //                        createIndex(writer, new File(file, files[i]));
 //                    }
 //                }
 //            }
-//            else { // 到达叶节点时，说明是一个File，而不是目录，则为该文件建立索引
+//            else {
 //                try {
 //                    writer.addDocument(FileDocument.Document(file));
 //                }
@@ -62,20 +62,20 @@ public class MySearchEngine {
 //        }
 //    }
 
-//    public void searchContent(String type,String keyword){    // 根据指定的检索内容类型type，以及检索关键字keyword进行检索操作
+//    public void searchContent(String type,String keyword){
 //        try {
-//            IndexSearcher searcher = new IndexSearcher(this.indexPath);    // 根据指定路径，构造一个IndexSearcher检索器
-//            Term term = new Term(type,keyword);    // 创建词条
-//            Query query = new TermQuery(term);    //   创建查询
+//            IndexSearcher searcher = new IndexSearcher(this.indexPath);
+//            Term term = new Term(type,keyword);
+//            Query query = new TermQuery(term);
 //            Date startTime = new Date();
-//            DocsEnum termDocs = searcher.getIndexReader().(term);    // 执行检索操作
-//            while(termDocs.next()){    //   遍历输出根据指定词条检索的结果信息
-//                System.out.println("搜索的该关键字【"+keyword+"】在文件\n"+searcher.getIndexReader().document(termDocs.doc()));
-//                System.out.println("中，出现过 "+termDocs.freq()+" 次");
+//            DocsEnum termDocs = searcher.getIndexReader().(term);
+//            while(termDocs.next()){
+//                System.out.println(""+searcher.getIndexReader().document(termDocs.doc()));
+//
 //            }
 //            Date finishTime = new Date();
-//            long timeOfSearch = finishTime.getTime() - startTime.getTime();    //   计算检索花费时间
-//            System.out.println("本次搜索所用的时间为 "+timeOfSearch+" ms");
+//            long timeOfSearch = finishTime.getTime() - startTime.getTime();
+//
 //        } catch (CorruptIndexException e) {
 //            e.printStackTrace();
 //        } catch (IOException e) {
@@ -83,7 +83,6 @@ public class MySearchEngine {
 //        }
 //    }
 
-//这里引用了import org.apache.lucene.demo.FileDocument，在创建Field的时候，为每个Field都设置了三种属性：path、modified、contents。在检索的时候，只要指定其中的一个就可以从索引中检索出来。
 public static void main(String[] args) throws IOException {
     MySearchEngine mySearcher = new MySearchEngine();
 
