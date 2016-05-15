@@ -17,14 +17,14 @@ import java.util.concurrent.Executors;
 /**
  * Created by andy on 5/11/16.
  */
-public class LockManager {
+public class RedisLockManagerClient {
     private JedisPool _pool;
-    private static LockManager _manager;
-    private LockManager() {}
+    private static RedisLockManagerClient _manager;
+    private RedisLockManagerClient() {}
 
-    public static LockManager getInstance() {
+    public static RedisLockManagerClient getInstance() {
         if (_manager == null) {
-            _manager = new LockManager();
+            _manager = new RedisLockManagerClient();
         }
         return _manager;
     }
@@ -88,7 +88,7 @@ public class LockManager {
 
     public static void main(String[]args) {
         final String key = "lock";
-        LockManager.getInstance().init("127.0.0.1", 6379);
+        RedisLockManagerClient.getInstance().init("127.0.0.1", 6379);
         ExecutorService executor = Executors.newFixedThreadPool(5);
         for (int i = 0; i < 3; i++) {
             executor.execute(new Runnable() {
@@ -97,7 +97,7 @@ public class LockManager {
                 public void run() {
                     try {
                         while (true) {
-                            if (LockManager.getInstance().lock(key, value, 5000)) {
+                            if (RedisLockManagerClient.getInstance().lock(key, value, 5000)) {
                                 break;
                             }
                             System.out.println("wait lock");
@@ -105,11 +105,11 @@ public class LockManager {
                         try {
                             System.out.println("getlock");
                             Thread.sleep(200);
-                            LockManager.getInstance().unlock(key, value);
+                            RedisLockManagerClient.getInstance().unlock(key, value);
                         } catch (Exception e) {
                             System.out.println("failed");
                         } finally {
-                            LockManager.getInstance().unlock(key, value);
+                            RedisLockManagerClient.getInstance().unlock(key, value);
                         }
 
                     } catch (Throwable t) {
