@@ -5,6 +5,7 @@ import com.fang.example.lock.protocol.LockProtocol;
 import com.fang.example.lock.reactor.Acceptor;
 import com.fang.example.lock.reactor.Handler;
 import com.fang.example.lock.reactor.Protocols;
+import com.fang.example.lock.reactor.ReactorExption;
 import com.fang.example.spring.di.util.Entry;
 import org.elasticsearch.common.netty.channel.socket.ServerSocketChannel;
 
@@ -15,6 +16,8 @@ import java.util.LinkedList;
 import java.util.Map;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * Created by andy on 5/12/16.
@@ -26,6 +29,8 @@ public class LockManager implements LockProtocol {
     public static Handler[] handlers;
     protected static ConcurrentHashMap<String/*lock key*/, Pair<String/*identify*/,Long/*expireTime*/>> _lockMap = new ConcurrentHashMap<>();
     protected static ConcurrentHashMap<String/*lock key*/, ConcurrentLinkedQueue<Pair<String/*identify*/,Long/*expireTime*/>>> _waitMap = new ConcurrentHashMap<>();
+    private ReentrantLock _lock = new ReentrantLock();
+    private  static  ConcurrentHashMap<String/*lock key*/, ConcurrentHashMap<String/*identify*/, Condition>> _waitLock = new ConcurrentHashMap<>();
     private static LockManager _manager = null;
     public static  LockManager getInstance() {
         if (_manager != null)
@@ -99,7 +104,7 @@ public class LockManager implements LockProtocol {
             }
         }
         System.out.println("Get lock-" + String.format(",key=%s, identify=%s", key, identify));
-        return _addLock(key, identify, Long.valueOf(expireTimeInMS.toString()));
+        return _addLock(key, identify, expireTimeInMS);
 
     }
     @Override
@@ -108,21 +113,41 @@ public class LockManager implements LockProtocol {
         if (pair != null) {
             if (!pair.getFirst().equals(identify)) {
                 ConcurrentLinkedQueue<Pair<String,Long>> waitingList = null;
+                ConcurrentHashMap<String, Condition> waitingLockList = null;
                 if (!_waitMap.containsKey(key)) {
                     waitingList = new ConcurrentLinkedQueue<>();
                     _waitMap.put(key, waitingList);
+                    waitingLockList = new ConcurrentHashMap<>();
+                    _waitLock.put(key, waitingLockList);
                 }
                 else {
                     waitingList = _waitMap.get(key);
                 }
-
-                waitingList.add(new Pair<String, Long>(identify, Long.valueOf(expireTimeInMS.toString())));
+                waitingList.add(new Pair<String, Long>(identify, expireTimeInMS));
+                Condition c = _lock.newCondition();
+                waitingLockList.put(identify, c);
                 System.out.println("block to wait lock-" + String.format(",key=%s, identify=%s", key, identify));
-                return "false";
+                try {
+
+                        _lock.lock();
+                        try {
+                            c.await();
+                        } catch (InterruptedException e) {
+                            throw new ReactorExption("wait error-" + e);
+                        }
+                    finally {
+                            _lock.unlock();
+                        }
+                    waitingLockList.remove(identify);
+
+                }
+                catch (Exception e) {
+                    throw new ReactorExption("wait error-" + e.getMessage(), e);
+                }
             }
         }
         System.out.println("get lock - " + String.format(",key=%s, identify=%s", key, identify));
-        return  _addLock(key, identify, Long.valueOf(expireTimeInMS.toString()));
+        return  _addLock(key, identify, expireTimeInMS);
 
     }
     @Override
@@ -134,8 +159,9 @@ public class LockManager implements LockProtocol {
 
         if (pair.getFirst().equals(identify)) {
             _lockMap.remove(key);
+            _addLock(key);
+
         }
-        _addLock(key);
         return "true";
     }
 
@@ -156,11 +182,22 @@ public class LockManager implements LockProtocol {
      */
     private synchronized  void _addLock(String key) {
         ConcurrentLinkedQueue<Pair<String, Long>> waitingList = _waitMap.get(key);
+        ConcurrentHashMap<String, Condition> waitLockList = _waitLock.get(key);
         if (waitingList != null) {
             Pair<String, Long> nextPair = waitingList.peek();
+
             if (_lockMap.get(key) == null || _lockMap.get(key).getFirst().equals(nextPair.getFirst())) {
                 _lockMap.put(key, new Pair<String, Long>(nextPair.getFirst(), nextPair.getSecond() + System.currentTimeMillis()));
                 waitingList.remove(nextPair);
+                _lock.lock();
+                try {
+                    Condition c = waitLockList.get(nextPair.getFirst());
+                    c.signal();
+                }
+                finally {
+                    _lock.unlock();
+                }
+
             }
         }
     }

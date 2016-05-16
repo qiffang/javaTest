@@ -83,8 +83,9 @@ public class Client {
         } catch (IOException e) {
             throw new ReactorExption("error" + e.getMessage(), e);
         }
-        String locked = lock.lock("key", "clientid2", 30000l);
-        System.out.println("status-" + locked);
+//        String locked = lock.lock("key", "clientid1", 40000l);
+        String unlock = lock.unLock("key", "clientid2");
+        System.out.println("status-" + unlock);
 
     }
 }
